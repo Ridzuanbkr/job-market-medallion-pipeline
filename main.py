@@ -11,45 +11,36 @@ def show_usage():
 
 
 def execute_pipeline(command):
-    """Helper map to handle standalone execution blocks cleanly."""
     print("====================================================")
     print(f"--- Pipeline Command Triggered: [{command.upper()}] ---")
     print("====================================================")
     
     if command == "ingest":
         try:
-            print("\n[Executing] Step 1: Decoding MHTML to data/1_bronze...\n")
-            raw_files = ingest_all_mhtml()
-            extracted_count = len(raw_files)
-            print(f"\n✅ 📊 Bronze Summary:\n")
-            print(f"Total: 100 | Extracted: {extracted_count} | Failed: {100 - extracted_count}")
+            ingest_all_mhtml()
         except Exception as e:
-            print(f"❌ Ingestion Critical Fault: {e}")
+            print(f"❌ Ingestion Fault: {e}")
             sys.exit(1)
 
     elif command == "process":
         try:
-            print("\n[Executing] Step 2: Cleaning & validating data to data/2_silver...\n")
             process_all_html()
         except Exception as e:
-            print(f"❌ Processing Critical Fault: {e}")
+            print(f"❌ Processing Fault: {e}")
             sys.exit(1)
 
     elif command == "load":
         try:
-            print("\n[Executing] Step 3: Storing Silver data into Gold SQLite DB...\n")
-            # Connect the outputs directly to the execution function parameters
             load_all_jsons()
         except Exception as e:
-            print(f"❌ Loading Critical Fault: {e}")
+            print(f"❌ Loading Fault: {e}")
             sys.exit(1)
 
     elif command == "profile":
         try:
-            print("\n[Executing] Step 4: Generating Data Quality Audit Report...\n")
             run_data_profile(db_path="data/3_gold/jobs.db")
         except Exception as e:
-            print(f"❌ Profiling Critical Fault: {e}")
+            print(f"❌ Profiling Fault: {e}")
             sys.exit(1)
 
 
@@ -58,18 +49,15 @@ def main():
         show_usage()
 
     target_command = sys.argv[1].lower()
-
-    valid_commands = ["ingest", "process", "load", "profile", "all"]
-    if target_command not in valid_commands:
+    if target_command not in ["ingest", "process", "load", "profile", "all"]:
         show_usage()
 
     if target_command == "all":
-        print("🌀 Starting Full End-to-End ETL Pipeline In Order...")
         execute_pipeline("ingest")
         execute_pipeline("process")
         execute_pipeline("load")
         execute_pipeline("profile")
-        print("\n🏆 End-to-End ETL Pipeline successfully finished running!")
+        print("\n🏆 Pipeline successfully finished running!")
     else:
         execute_pipeline(target_command)
 

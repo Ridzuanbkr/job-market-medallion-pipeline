@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+import shutil
 from pathlib import Path
 from bs4 import BeautifulSoup
 
@@ -32,83 +33,14 @@ def sanitize_filename(name: str) -> str:
     return clean_name.strip("_")
 
 
-# 3. DATA PROCESSING: Extract specific fields from HTML attributes
-def extract_source_id_from_url(soup: BeautifulSoup) -> str | None:
-    meta_url = soup.find("meta", property="og:url")
-    if meta_url and meta_url.get("content"):
-        url_str = meta_url["content"].strip().rstrip("/")
-        if url_str:
-            return url_str.split("/")[-1]
-    return None
-
-
-def extract_field_by_automation_value(soup: BeautifulSoup, target_value: str) -> str | None:
-    element = soup.find(attrs={"data-automation": target_value})
-    if element:
-        text = element.get_text(strip=True)
-        return text if text else None
-    return None
-
-
-def extract_clean_job_description(soup: BeautifulSoup, job_title: str | None) -> str:
-    """2. DATA CLEANING: Removes HTML artifacts, normalizes text, and purges
-
-    website navigation headers and footers using a global sentence blocklist.
-    Focuses exclusively on jobAdDetails.
-    """
-    # STRIP JOBDESCRIPTION: Focus only on jobAdDetails container attribute
-    desc_container = soup.find(attrs={"data-automation": "jobAdDetails"})
-    
-    if desc_container:
-        # Prevent fused words using a space separator layout
-        raw_text = desc_container.get_text(separator=" ", strip=True)
-    else:
-        # Fallback to body text if container element isn't found to avoid empty data breaks
-        body = soup.find("body") or soup
-        raw_text = body.get_text(separator=" ", strip=True)
-
-    # Normalize multiple whitespace blocks
-    raw_text = re.sub(r"\s+", " ", raw_text).strip()
-
-    if not raw_text:
-        return ""
-
-    # Safely divide text into sentences based on punctuation markers
-    sentences = re.split(r'(?<=[.!?])\s+', raw_text)
-    short_desc_parts = []
-    
-    # --- GLOBAL BLOCKLIST ENGINE ---
-    navigation_blocklist = [
-        "skip to content", "open app", "sign in", "job search", 
-        "people search", "career advice", "employer site", "companies community",
-        "malaysia australia hong kong indonesia", "new zealand philippines singapore thailand"
-    ]
-    
-    # Priority keywords matching your business logic rules
-    priority_keywords = ["responsibilities", "requirements", "develop", "design", "experience", "skills"]
-    
-    for sentence in sentences:
-        sentence_lower = sentence.lower()
-        
-        # 1. Skip sentence completely if it matches ANY layout clutter in our navigation blocklist
-        if any(clutter in sentence_lower for clutter in navigation_blocklist):
-            continue
-            
-        # 2. Keep sentence if it hits a core keyword or to populate an initial contextual summary window
-        if any(kw in sentence_lower for kw in priority_keywords) or len(short_desc_parts) < 4:
-            short_desc_parts.append(sentence)
-            
-    # Combine back into a concise block, keeping up to 6 key highlight sentences max
-    clean_description = " ".join(short_desc_parts[:6]).strip()
-    return clean_description
-
-
 def process_all_html(input_dir: str = "data/1_bronze", output_dir: str = "data/2_silver") -> list[Path]:
     input_path = Path(input_dir)
     output_path = Path(output_dir)
 
-    if not output_path.exists():
-        output_path.mkdir(parents=True, exist_ok=True)
+    # Clean destination to wipe old stale file artifacts
+    if output_path.exists():
+        shutil.rmtree(output_path)
+    output_path.mkdir(parents=True, exist_ok=True)
 
     if not input_path.exists():
         print(f"❌ Error: Input directory '{input_dir}' does not exist.")
@@ -129,41 +61,58 @@ def process_all_html(input_dir: str = "data/1_bronze", output_dir: str = "data/2
 
             soup = BeautifulSoup(html_content, "html.parser")
 
-            source_id = extract_source_id_from_url(soup)
-            job_title = extract_field_by_automation_value(soup, "job-detail-title")
-            company = extract_field_by_automation_value(soup, "advertiser-name")
-            
-            # FIXED: Correctly pass text extraction through the sentence cleaner engine 
-            clean_description = extract_field_by_automation_value(soup, "jobAdDetails")
+            # Custom extraction blocks
+            source = soup.find("meta", property="og:url")
+            source_id = source.get("content").split("/")[-1] if source else None
+
+            if source_id is None or source_id == "":
+                print(f"⚠️ Missing source_id in: {file_path.name}")
+                skipped_count += 1
+                continue
+
+            title = soup.find("h1", attrs={"data-automation": "job-detail-title"})
+            job_title = title.get_text(separator=" ", strip=True) if title else None
+
+            if job_title is None or job_title == "":
+                print(f"⚠️ Missing job_title in: {file_path.name}")
+                skipped_count += 1
+                continue
+
+            company = soup.find("span", attrs={"data-automation": "advertiser-name"})
+            company_name = company.get_text(separator=" ", strip=True) if company else None
+
+            if company_name is None or company_name == "":
+                print(f"⚠️ Missing company in: {file_path.name}")
+                skipped_count += 1
+                continue
+
+            desc = soup.find("div", attrs={"data-automation": "jobAdDetails"})
+            job_desc = desc.get_text(separator=" ", strip=True) if desc else None
+
+            if job_desc is None or job_desc == "":
+                print(f"⚠️ Missing description in: {file_path.name}")
+                skipped_count += 1
+                continue
 
             try:
-                # Validation assertions to confirm fields match required string types
-                if not source_id or not job_title or not company or not clean_description:
-                    raise ValueError("Missing data contract attributes.")
-
                 validated_job = JobListing(
                     source_id=str(source_id),
                     job_title=str(job_title),
-                    company=str(company),
-                    description=str(clean_description),
+                    company=str(company_name),
+                    description=str(job_desc),
                 )
 
-                # Output file name uses the clean job title format
+                # Added source_id suffix to completely eliminate file name collisions
                 safe_title = sanitize_filename(validated_job.job_title)
-                destination = output_path / f"{safe_title}.json"
+                destination = output_path / f"{safe_title}_{validated_job.source_id}.json"
                 
                 with open(destination, "w", encoding="utf-8") as out_f:
                     json.dump(validated_job.model_dump(), out_f, ensure_ascii=False, indent=2)
 
                 print(f"✅ Processed: {file_path.name}")
                 saved_json_files.append(destination)
-
-            except ValueError as ve:
-                skipped_count += 1
-                field_name = str(ve).split()[-1] if "attributes" not in str(ve) else "data"
-                print(f"⚠️ Missing {field_name} in: {file_path.name}")
                 
-            except (TypeError, Exception):
+            except Exception:
                 skipped_count += 1
                 print(f"⚠️ Missing unknown data structural contract in: {file_path.name}")
 
