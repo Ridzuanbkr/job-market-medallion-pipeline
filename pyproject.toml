@@ -2,11 +2,12 @@
 name = "resume-skill-analyzer"
 version = "0.1.0"
 description = "A local data pipeline to analyze resume skill gaps."
-requires-python = "==3.14.*"
+requires-python = ">=3.14"
 dependencies = [
-    "beautifulsoup4==4.12.3",
-    "pydantic==2.7.1",
-    "ruff==0.15.0"
+    "beautifulsoup4",
+    "bs4>=0.0.2",
+    "pydantic",
+    "ruff",
 ]
 
 [tool.ruff]

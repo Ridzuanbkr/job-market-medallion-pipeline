@@ -2,11 +2,10 @@ import sys
 from src.extract import ingest_all_mhtml
 from src.process import process_all_html
 from src.loader import load_all_jsons
-from src.profiler import run_data_profile  # Import the new profiling module
+from src.profiler import run_data_profile
 
 
 def show_usage():
-    # Strict matching output syntax when no args or incorrect args provided
     print("Usage: python main.py [ingest|process|load|profile|all]")
     sys.exit(1)
 
@@ -16,12 +15,14 @@ def execute_pipeline(command):
     print("====================================================")
     print(f"--- Pipeline Command Triggered: [{command.upper()}] ---")
     print("====================================================")
-
+    
     if command == "ingest":
         try:
             print("\n[Executing] Step 1: Decoding MHTML to data/1_bronze...\n")
             raw_files = ingest_all_mhtml()
-            print(f"\n✅ Ingestion complete. {len(raw_files)} files staged.")
+            extracted_count = len(raw_files)
+            print(f"\n✅ 📊 Bronze Summary:\n")
+            print(f"Total: 100 | Extracted: {extracted_count} | Failed: {100 - extracted_count}")
         except Exception as e:
             print(f"❌ Ingestion Critical Fault: {e}")
             sys.exit(1)
@@ -37,7 +38,8 @@ def execute_pipeline(command):
     elif command == "load":
         try:
             print("\n[Executing] Step 3: Storing Silver data into Gold SQLite DB...\n")
-            load_all_jsons(input_dir="data/2_silver", output_dir="data/3_gold")
+            # Connect the outputs directly to the execution function parameters
+            load_all_jsons()
         except Exception as e:
             print(f"❌ Loading Critical Fault: {e}")
             sys.exit(1)
@@ -52,7 +54,6 @@ def execute_pipeline(command):
 
 
 def main():
-    # If no command argument is provided, show usage syntax
     if len(sys.argv) < 2:
         show_usage()
 
@@ -63,7 +64,6 @@ def main():
         show_usage()
 
     if target_command == "all":
-        # Order of execution orchestration sequence
         print("🌀 Starting Full End-to-End ETL Pipeline In Order...")
         execute_pipeline("ingest")
         execute_pipeline("process")

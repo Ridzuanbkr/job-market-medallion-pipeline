@@ -19,7 +19,7 @@ This project leverages `uv` to maintain reproducible environments. Clone the rep
 # Create a virtual environment and install all necessary dependencies
 uv venv
 uv pip install beautifulsoup4 pydantic
-
+```
 Environment & Workspace Layout
 No external API keys or secret environment variables are required for this local-first execution. However, the pipeline strictly expects a unified storage layout. The program automatically builds this infrastructure if missing, but ensure your starting raw archives are placed as follows:
 
