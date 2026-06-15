@@ -24,38 +24,59 @@ def ingest_all_mhtml(
         print(f"Warning: Source directory '{input_dir}' does not exist.")
         return []
 
+    # Initialize metric counters
+    total_count = 0
+    extracted_count = 0
+    failed_count = 0
     extracted_files = []
+
+    print("🟫 Bronze:...")
 
     # Filter and loop through source files
     for file_path in source_path.iterdir():
         if file_path.is_file() and file_path.suffix.lower() == ".mhtml":
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                msg = message_from_file(f)
+            total_count += 1
+            try:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    msg = message_from_file(f)
 
-            html_content = ""
-            if msg.is_multipart():
-                for part in msg.walk():
-                    if part.get_content_type() == "text/html":
-                        payload = part.get_payload(decode=False)
-                        if payload:
-                            html_content = payload
-                            break
-            else:
-                if msg.get_content_type() == "text/html":
-                    html_content = msg.get_payload(decode=False)
+                html_content = ""
+                if msg.is_multipart():
+                    for part in msg.walk():
+                        if part.get_content_type() == "text/html":
+                            payload = part.get_payload(decode=False)
+                            if payload:
+                                html_content = payload
+                                break
+                else:
+                    if msg.get_content_type() == "text/html":
+                        html_content = msg.get_payload(decode=False)
 
-            if html_content:
-                # Decode the quoted-printable data string payload cleanly
-                decoded_bytes = quopri.decodestring(html_content.encode("utf-8"))
-                decoded_text = decoded_bytes.decode("utf-8", errors="ignore")
+                if html_content:
+                    # Decode the quoted-printable data string payload cleanly
+                    decoded_bytes = quopri.decodestring(html_content.encode("utf-8"))
+                    decoded_text = decoded_bytes.decode("utf-8", errors="ignore")
 
-                destination = output_path / f"{file_path.stem}.html"
-                with open(destination, "w", encoding="utf-8") as out_f:
-                    out_f.write(decoded_text)
+                    destination = output_path / f"{file_path.stem}.html"
+                    with open(destination, "w", encoding="utf-8") as out_f:
+                        out_f.write(decoded_text)
 
-                # Tracking: Exact print statement format requested
-                print(f"Extracted {file_path.name}")
-                extracted_files.append(destination)
+                    # FIXED: Aligned output print styling
+                    print(f"✅ Extracted: {file_path.name}")
+                    extracted_files.append(destination)
+                    extracted_count += 1
+                else:
+                    # Handle files that successfully opened but had empty html text components
+                    print(f"❌ Failed to extract {file_path.name}: No HTML payload found.")
+                    failed_count += 1
+
+            except Exception as e:
+                print(f"❌ Failed to extract {file_path.name}: {e}")
+                failed_count += 1
+
+    # FIXED: Prints the exact requested output summary format layout
+    print("\n📊 Bronze Summary:")
+    print(f"Total: {total_count} | Extracted: {extracted_count} | Failed: {failed_count}")
 
     return extracted_files
 
