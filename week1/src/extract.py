@@ -30,7 +30,7 @@ def ingest_all_mhtml(
     failed_count = 0
     extracted_files = []
 
-    print("🟫 Bronze:...")
+    print("🥉 Bronze:...")
 
     # Filter and loop through source files
     for file_path in source_path.iterdir():
