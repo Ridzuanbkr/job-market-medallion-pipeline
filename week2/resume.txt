@@ -1,0 +1,1 @@
+Skills: Python, SQL, Git, AWS/Azure/GCP, CI/CD, Management, Leadership

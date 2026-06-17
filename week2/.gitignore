@@ -1,0 +1,11 @@
+# Ignore local data artifacts
+data/
+rate_limits.txt
+
+# Secret API Keys environment file
+.env
+
+# Environments and Caches
+.venv/
+__pycache__/
+.ruff_cache/
