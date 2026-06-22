@@ -1,8 +1,6 @@
-import os
 import sqlite3
 import time
 import ast
-import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from prompt_model import prompt_model
@@ -24,7 +22,7 @@ def tag_data(db_filename: str):
     script_dir = Path(__file__).resolve().parent
     db_url = script_dir / "resources" / db_filename
 
-    print(f"=== Checking Database Path ===", flush=True)
+    print("=== Checking Database Path ===", flush=True)
     print(f"Looking for database at: {db_url}", flush=True)
 
     # Explicitly verify the file exists before letting SQLite touch it
@@ -33,7 +31,7 @@ def tag_data(db_filename: str):
         print("Please ensure your 'resources' folder and the database file exist alongside this script.", flush=True)
         return
 
-    print(f"=== Opening Database Connection ===", flush=True)
+    print("=== Opening Database Connection ===", flush=True)
     try:
         conn = sqlite3.connect(db_url)
         cursor = conn.cursor()
