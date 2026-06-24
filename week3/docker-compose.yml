@@ -1,0 +1,42 @@
+services:
+  backend:
+    image: backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8001:8000"
+    networks:
+      - app-network
+    command: >
+      sh -c "echo '' && 
+             echo '👉 CLICK THIS LINK TO OPEN BACKEND DOCS:' && 
+             echo 'http://localhost:8001/docs#/' && 
+             echo '' && 
+             uv run uvicorn main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    image: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_URL=http://localhost:8000
+    ports:
+      - "8501:8501"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+    command: >
+      sh -c "echo '' && 
+             echo '👉 CLICK THIS LINK TO OPEN YOUR DASHBOARD:' && 
+             echo 'http://localhost:8501/Dashboard' && 
+             echo '' && 
+             uv run uvicorn src.app:app --host 0.0.0.0 --port 8501"
+
+networks:
+  app-network:
+    driver: bridge

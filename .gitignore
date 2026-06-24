@@ -1,0 +1,17 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache files
+**/__pycache__/
+*.pyc
+
+# Docker and OS metadata
+.dockerignore
+.DS_Store
+Thumbs.db
+
+# Sensitive local credentials (CRITICAL)
+week3/backend/.env

@@ -73,18 +73,8 @@ async def chat_endpoint(payload: ChatPayload):
             print(f"CRITICAL CHAT ERROR: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Gemini API Error: {str(e)}")
 
-    try:
-        # Call Gemini using the 2026 standard model
-        response = await client.aio.models.generate_content(
-            model='gemini-2.5-flash-lite',
-            contents=full_prompt,
-        )
-        return {"response": response.text}
-        
-    except Exception as e:
-        print(f"CRITICAL CHAT ERROR: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Gemini API Error: {str(e)}")
-
+    # 🚀 FALLBACK: If it somehow exits the loop without returning or raising an error
+    raise HTTPException(status_code=500, detail="Gemini API failed after maximum retry attempts.")
 
 # -------------------------------------------------------------
 # 2. BONUS DASHBOARD DATABASE SEARCH ENDPOINT

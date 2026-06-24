@@ -11,7 +11,14 @@ load_dotenv()
 app = FastAPI()
 templates = Jinja2Templates(directory="src/templates")
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8001")
+BACKEND_URL = os.getenv("backend_url", "http://localhost:8001")
+
+from fastapi.responses import RedirectResponse
+
+@app.get("/")
+async def root_redirect():
+    # 🚀 Instantly forward anyone clicking the base terminal link to your dashboard
+    return RedirectResponse(url="/Dashboard")
 
 # Keep all your previous code imports/setup exactly the same
 @app.get("/Dashboard", response_class=HTMLResponse)
