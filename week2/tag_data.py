@@ -20,7 +20,7 @@ def tag_data(db_filename: str):
 
     # Using pathlib to build an absolute path to /resources/jobs_d1.db
     script_dir = Path(__file__).resolve().parent
-    db_url = script_dir / "resources" / db_filename
+    db_url = script_dir / "data" / db_filename
 
     print("=== Checking Database Path ===", flush=True)
     print(f"Looking for database at: {db_url}", flush=True)
@@ -132,4 +132,4 @@ def tag_data(db_filename: str):
     print("\n=== Data Tagging Complete ===", flush=True)
 
 if __name__ == "__main__":
-    tag_data("jobs_d1.db")
+    tag_data("jobs.db")
