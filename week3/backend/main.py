@@ -25,7 +25,7 @@ app.add_middleware(
 # CONFIGURATIONS & INITIALIZATIONS
 # -------------------------------------------------------------
 # Path to the Week 1 database file copied inside your backend data folder
-DB_PATH = os.getenv("DB_PATH", "data/3_gold/jobs.db")
+DB_PATH = os.getenv("DB_PATH", "src/week_2/jobs.db")
 
 # Initialize the Gemini client (it automatically picks up GEMINI_API_KEY from os.environ)
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -56,7 +56,7 @@ async def chat_endpoint(payload: ChatPayload):
     for attempt in range(max_retries):
         try:
             response = await client.aio.models.generate_content(
-                model='gemini-2.5-flash-lite',
+                model='gemini-3-flash-preview',
                 contents=full_prompt,
             )
             return {"response": response.text}
@@ -91,7 +91,7 @@ async def search_database(q: str):
         
         # NOTE: Make sure your table name and columns exist in your Week 1 DB!
         # Change 'jobs', 'title', and 'description' below if your week 1 names are different.
-        query = f"SELECT * FROM jobs WHERE job_title LIKE ? OR description LIKE ? LIMIT 10"
+        query = f"SELECT * FROM jobs WHERE job_title LIKE ? OR description LIKE ? LIMIT 100"
         cursor.execute(query, (f"%{q}%", f"%{q}%"))
         
         rows = cursor.fetchall()

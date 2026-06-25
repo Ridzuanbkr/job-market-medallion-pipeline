@@ -24,13 +24,22 @@
                     <input type="text" id="db-search" class="form-control" placeholder="Search by job title, skill, or applicant name...">
                     <button class="btn btn-primary" type="button" id="search-btn">Search</button>
                 </div>
+
+                <div id="search-summary"></div>
+
                 <div class="table-responsive">
                     <table class="table table-striped table-hover d-none" id="results-table">
-                        <thead class="table-dark">
-                            <tr id="table-headers"></tr>
-                        </thead>
-                        <tbody id="table-body"></tbody>
-                    </table>
+    <thead class="table-dark">
+        <tr>
+            <th style="width: 5%; text-align: center;">#</th>
+            <th style="width: 10%;">Job ID</th>
+            <th style="width: 20%;">Title</th>
+            <th style="width: 15%;">Company</th>
+            <th style="width: 35%;">Description Snippet</th>
+            <th style="width: 15%;">Tech Stack</th> </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+</table>
                 </div>
                 <div id="search-status" class="text-muted text-center py-2">Enter a query above to see database entries.</div>
             </div>
@@ -60,7 +69,7 @@
     <script>
         const BACKEND_URL = "{{ backend_url }}";
 
-        // Initialize Chart.js Elements with placeholder data until Backend is live
+        // Initialize Chart.js Elements
         const ctxPie = document.getElementById('jobPieChart').getContext('2d');
         const jobPieChart = new Chart(ctxPie, {
             type: 'pie',
@@ -94,34 +103,94 @@
             if (!query) return;
 
             const status = document.getElementById('search-status');
+            const summaryBox = document.getElementById('search-summary');
+            const tableElement = document.getElementById('results-table');
+            const tableBody = document.getElementById('table-body');
+
             status.textContent = "Searching database...";
+            status.classList.remove('d-none');
+            summaryBox.innerHTML = ''; // Reset the status banner layout
 
             try {
-                const response = await fetch(`http://localhost:8001/api/search?q=${encodeURIComponent(query)}`);
-                const data = await response.json();
-                
-                if (data.results && data.results.length > 0) {
-                    status.classList.add('d-none');
-                    const table = document.getElementById('results-table');
-                    table.classList.remove('d-none');
-                    
-                    // Generate dynamic headers based on keys
-                    const headersRow = document.getElementById('table-headers');
-                    headersRow.innerHTML = Object.keys(data.results[0]).map(k => `<th>${k.toUpperCase()}</th>`).join('');
+    const response = await fetch(`http://localhost:8001/api/search?q=${encodeURIComponent(query)}`);
+    const data = await response.json(); 
+    
+    // 🔍 DEBUG LOG: Keep this open to see the exact structure in your console!
+    console.log("Raw Response from API Backend:", data);
 
-                    // Generate table body lines
-                    const bodyRow = document.getElementById('table-body');
-                    bodyRow.innerHTML = data.results.map(row => 
-                        `<tr>${Object.values(row).map(v => `<td>${v}</td>`).join('')}</tr>`
-                    ).join('');
-                } else {
-                    status.classList.remove('d-none');
-                    status.textContent = "No database records found matching that query.";
-                }
-            } catch(e) {
-                status.classList.remove('d-none');
-                status.textContent = "Cannot connect to Backend service data stream.";
-            }
+    // 🛠️ FIX: Safely find the array inside the object
+    let targetRows = [];
+    if (Array.isArray(data)) {
+        targetRows = data; // If it's already a flat array
+    } else if (data.results && Array.isArray(data.results)) {
+        targetRows = data.results; // If wrapped in {"results": [...]}
+    } else if (data.jobs && Array.isArray(data.jobs)) {
+        targetRows = data.jobs;    // If wrapped in {"jobs": [...]}
+    } else {
+        // Fallback: search for ANY array property inside the object
+        const foundArray = Object.values(data).find(val => Array.isArray(val));
+        if (foundArray) targetRows = foundArray;
+    }
+    
+    const totalCount = targetRows.length;
+    
+    // Hide original default status text
+    status.classList.add('d-none');
+
+    // 1. Inject the Summary Alert Banner
+    if (totalCount > 0) {
+        summaryBox.innerHTML = `
+            <div class="alert alert-info d-flex justify-content-between align-items-center mb-3 fw-bold" role="alert">
+                <span>🔍 Found ${totalCount} job fields matching "${query}"</span>
+                <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+            </div>
+        `;
+        tableElement.classList.remove('d-none'); // Show table
+    } else {
+        summaryBox.innerHTML = `
+            <div class="alert alert-danger fw-bold mb-3" role="alert">
+                ⚠️ No fields or IDs match the keyword "${query}".
+            </div>
+        `;
+        tableElement.classList.add('d-none'); // Hide table
+    }
+
+// Clear and rebuild table rows using our verified targetRows array
+tableBody.innerHTML = '';
+targetRows.forEach((job, index) => {
+    const row = document.createElement('tr');
+    
+    // Handle varying database schemas
+    const jobId = job.source_id || job.id || job.job_id || 'N/A';
+    const jobTitle = job.job_title || job.title || 'N/A';
+    const companyName = job.company || job.company_name || 'N/A';
+    const desc = job.description || job.summary || 'No description available';
+    const techStack = job.tech_stack || job.skills || 'N/A';
+    
+    row.innerHTML = `
+        <td class="fw-bold text-muted text-center align-middle" style="width: 5%;">${index + 1}</td>
+        <td class="align-middle fw-semibold" style="width: 10%;">${jobId}</td>
+        <td class="align-middle" style="width: 20%;">${jobTitle}</td>
+        <td class="align-middle" style="width: 15%;">${companyName}</td>
+        <td style="width: 35%;">
+            <div style="height: 90px; overflow-y: auto; font-size: 0.85rem; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; background-color: #f8f9fa; line-height: 1.4;">
+                ${desc}
+            </div>
+        </td>
+        <td style="width: 15%;">
+            <div style="height: 90px; overflow-y: auto; font-size: 0.85rem; padding: 8px; border: 1px solid #dee2e6; border-radius: 6px; background-color: #f8f9fa; line-height: 1.4;">
+                ${techStack}
+            </div>
+        </td>
+    `;
+    tableBody.appendChild(row);
+});
+
+} catch (error) {
+    console.error("Search failed:", error);
+    status.textContent = "Error executing search request.";
+    tableElement.classList.add('d-none');
+}
         });
     </script>
 </body>

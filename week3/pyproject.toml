@@ -1,0 +1,12 @@
+[project]
+name = "week3-workspace"
+version = "0.1.0"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["backend", "frontend"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.19",
+]

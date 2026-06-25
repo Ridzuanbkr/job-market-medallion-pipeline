@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 # Fix line 5: Change to load_dotenv
 from dotenv import load_dotenv
+from fastapi.responses import RedirectResponse
 
 # Fix line 8: Change to load_dotenv()
 load_dotenv()
@@ -12,8 +13,6 @@ app = FastAPI()
 templates = Jinja2Templates(directory="src/templates")
 
 BACKEND_URL = os.getenv("backend_url", "http://localhost:8001")
-
-from fastapi.responses import RedirectResponse
 
 @app.get("/")
 async def root_redirect():

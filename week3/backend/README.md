@@ -17,7 +17,7 @@ The service depends heavily on specific container variables to talk to the AI AP
 
 ```text
 GEMINI_API_KEY=your_actual_studio_api_key_here
-DB_PATH=data/3_gold/jobs.db
+DB_PATH=src/week_2/jobs.db
 
 📂 Core API Routing Endpoints
 * POST /api/chat: Processes raw user context, injects parsed documentation frameworks, and runs exponential backoff logic against Gemini's streaming frameworks.
